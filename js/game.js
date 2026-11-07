@@ -103,6 +103,25 @@
   }
   paintIcons();
 
+  // PNG icons and the menu plate. Class is added only after the file loads,
+  // so the inline SVG / window dot / procedural sky stay if a request fails.
+  function adoptArt() {
+    var nodes = document.querySelectorAll("[data-asset]");
+    for (var i = 0; i < nodes.length; i++) {
+      (function (node) {
+        var src = node.getAttribute("data-asset");
+        if (!src) return;
+        var img = new Image();
+        img.onload = function () {
+          if (img.naturalWidth) node.classList.add("has-art");
+        };
+        img.onerror = function () { node.classList.remove("has-art"); };
+        img.src = src + (src.indexOf("?") >= 0 ? "" : "?v=4");
+      })(nodes[i]);
+    }
+  }
+  adoptArt();
+
   function reducedMotion() {
     return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   }
@@ -226,7 +245,7 @@
       var b = document.createElement("button");
       b.className = "part-btn" + (selectedId === id ? " on" : "") + (unlocked ? "" : " locked");
       var icon = OW.SPRITE_FILES[id]
-        ? '<img class="part-icon" alt="" src="assets/parts/' + OW.SPRITE_FILES[id] + '?v=3">'
+        ? '<img class="part-icon" alt="" src="assets/parts/' + OW.SPRITE_FILES[id] + '?v=4">'
         : "";
       b.innerHTML = '<span><i class="swatch" style="background:' + def.color + '"></i>' + icon + def.name + "</span>";
       var iconEl = b.querySelector("img");

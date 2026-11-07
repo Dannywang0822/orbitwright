@@ -5,14 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <meta name="theme-color" content="#070b14" />
   <title>星匠 Orbitwright</title>
-  <link rel="stylesheet" href="css/styles.css?v=3" />
+  <link rel="stylesheet" href="css/styles.css?v=4" />
 </head>
 <body>
   <canvas id="view"></canvas>
   <div id="ui">
     <section id="screen-menu" class="screen on">
-      <!-- Procedural Earth–Moon is painted on #view. Hot-swap: assets/ui/menu-earth-moon.png -->
-      <div class="menu-sky" data-asset="assets/ui/menu-earth-moon.png" aria-hidden="true"></div>
+      <!-- Procedural Earth–Moon is painted on #view. Hot-swap: assets/ui/bg/menu-earth-moon.png -->
+      <div class="menu-sky" data-asset="assets/ui/bg/menu-earth-moon.png" aria-hidden="true"></div>
       <div class="card">
         <h1>星匠</h1>
         <div class="sub">Orbitwright · 组装、入轨、奔月</div>
@@ -93,7 +93,7 @@
           <div class="hud-bodyline">
             <strong id="hud-body">地球</strong>
             <span class="win" id="hud-window" hidden>
-              <i class="win-dot" data-ui-icon="window" data-asset="assets/ui/icon-window.png"></i>
+              <i class="win-dot" data-ui-icon="window" data-asset="assets/ui/icons/window.png"></i>
               <span id="hud-window-label"></span>
             </span>
           </div>
@@ -104,18 +104,18 @@
         </div>
         <div class="hud-card hud-cluster" id="hud-right" data-cluster="resources">
           <div class="fuel-head">
-            <span class="hud-k"><span class="ui-icon" data-ui-icon="fuel" data-asset="assets/ui/icon-fuel.png"></span>燃料</span>
+            <span class="hud-k"><span class="ui-icon" data-ui-icon="fuel" data-asset="assets/ui/icons/fuel.png"></span>燃料</span>
             <b id="hud-fuel-pct">—</b>
           </div>
           <div class="hbar" id="hud-fuel-bar" data-metric="fuel"><i id="hud-fuel-fill"></i></div>
           <div class="throttle-read">
-            <span class="hud-k"><span class="ui-icon" data-ui-icon="throttle" data-asset="assets/ui/icon-throttle.png"></span>油门</span>
+            <span class="hud-k"><span class="ui-icon" data-ui-icon="throttle" data-asset="assets/ui/icons/throttle.png"></span>油门</span>
             <div class="mini-v" aria-hidden="true"><i id="hud-throttle-fill"></i></div>
             <b id="hud-throttle-pct">—</b>
           </div>
           <div class="hud-row"><span>TWR</span><b id="hud-twr">—</b></div>
           <div class="hud-row q-read" id="hud-q">
-            <span><span class="ui-icon" data-ui-icon="warn" data-asset="assets/ui/icon-warn.png"></span>动压</span>
+            <span><span class="ui-icon" data-ui-icon="warn" data-asset="assets/ui/icons/warn.png"></span>动压</span>
             <b id="hud-q-val">—</b>
           </div>
           <div class="hud-sub" id="hud-q-note"></div>
@@ -136,38 +136,38 @@
       </div>
       <div class="controls">
         <div class="stick" id="stick" aria-label="倾转">
-          <span class="axis-label"><span class="ui-icon" data-ui-icon="pitch" data-asset="assets/ui/icon-pitch.png"></span>俯仰</span>
+          <span class="axis-label"><span class="ui-icon" data-ui-icon="pitch" data-asset="assets/ui/icons/pitch.png"></span>俯仰</span>
           <div class="axis-ticks" aria-hidden="true"></div>
           <div class="knob" id="stick-knob"></div>
         </div>
         <div class="btn-col">
           <div class="stage-capsule" id="stage-capsule">
-            <span class="ui-icon" data-ui-icon="stage" data-asset="assets/ui/icon-stage.png"></span>
+            <span class="ui-icon" data-ui-icon="stage" data-asset="assets/ui/icons/stage.png"></span>
             <span><em>下一抛</em><b id="stage-name">—</b></span>
           </div>
           <button id="btn-ignite" class="primary" data-ui-icon="ignite">
-            <span class="ui-icon" data-ui-icon="ignite" data-asset="assets/ui/icon-ignite.png"></span>
+            <span class="ui-icon" data-ui-icon="ignite" data-asset="assets/ui/icons/ignite.png"></span>
             <span class="lbl">点火</span>
           </button>
           <button id="btn-stage" data-ui-icon="stage">
-            <span class="ui-icon" data-ui-icon="stage" data-asset="assets/ui/icon-stage.png"></span>
+            <span class="ui-icon" data-ui-icon="stage" data-asset="assets/ui/icons/stage.png"></span>
             <span class="lbl">分级</span>
           </button>
           <button id="btn-cam" data-ui-icon="map">
-            <span class="ui-icon" data-ui-icon="map" data-asset="assets/ui/icon-map.png"></span>
+            <span class="ui-icon" data-ui-icon="map" data-asset="assets/ui/icons/map.png"></span>
             <span class="lbl">轨道图</span>
           </button>
           <button id="btn-warp" data-ui-icon="warp">
-            <span class="ui-icon" data-ui-icon="warp" data-asset="assets/ui/icon-warp.png"></span>
+            <span class="ui-icon" data-ui-icon="warp" data-asset="assets/ui/icons/warp.png"></span>
             <span class="lbl">1×</span>
           </button>
           <button id="btn-pause" data-ui-icon="pause">
-            <span class="ui-icon" data-ui-icon="pause" data-asset="assets/ui/icon-pause.png"></span>
+            <span class="ui-icon" data-ui-icon="pause" data-asset="assets/ui/icons/pause.png"></span>
             <span class="lbl">暂停</span>
           </button>
         </div>
         <div class="throttle" id="throttle" aria-label="油门">
-          <span class="axis-label"><span class="ui-icon" data-ui-icon="throttle" data-asset="assets/ui/icon-throttle.png"></span>油门</span>
+          <span class="axis-label"><span class="ui-icon" data-ui-icon="throttle" data-asset="assets/ui/icons/throttle.png"></span>油门</span>
           <div class="axis-ticks" aria-hidden="true"></div>
           <div class="throttle-fill" id="throttle-fill"></div>
           <div class="knob" id="throttle-knob"></div>
@@ -203,13 +203,13 @@
     <div id="banner"></div>
     <div id="toast"></div>
   </div>
-  <script src="js/tune.js?v=3"></script>
-  <script src="js/parts.js?v=3"></script>
-  <script src="js/craft.js?v=3"></script>
-  <script src="js/physics.js?v=3"></script>
-  <script src="js/save.js?v=3"></script>
-  <script src="js/audio.js?v=3"></script>
-  <script src="js/draw.js?v=3"></script>
-  <script src="js/game.js?v=3"></script>
+  <script src="js/tune.js?v=4"></script>
+  <script src="js/parts.js?v=4"></script>
+  <script src="js/craft.js?v=4"></script>
+  <script src="js/physics.js?v=4"></script>
+  <script src="js/save.js?v=4"></script>
+  <script src="js/audio.js?v=4"></script>
+  <script src="js/draw.js?v=4"></script>
+  <script src="js/game.js?v=4"></script>
 </body>
 </html>

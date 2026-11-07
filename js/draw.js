@@ -28,6 +28,8 @@ OW.draw = {
   w: 0,
   h: 0,
   sprites: {},
+  flames: [],
+  sparks: [],
   fx: [],
 
   loadSprites: function () {
@@ -37,9 +39,48 @@ OW.draw = {
       var rec = { img: img, ready: false, failed: false };
       img.onload = function () { rec.ready = true; };
       img.onerror = function () { rec.failed = true; };
-      img.src = "assets/parts/" + OW.SPRITE_FILES[id] + "?v=3";
+      img.src = "assets/parts/" + OW.SPRITE_FILES[id] + "?v=4";
       self.sprites[id] = rec;
     });
+    this.flames = this.loadFrameSet("flame");
+    this.sparks = this.loadFrameSet("spark");
+  },
+
+  loadFrameSet: function (dir) {
+    var recs = [];
+    for (var i = 1; i <= 4; i++) recs.push(this.loadFrame(dir, i));
+    return recs;
+  },
+
+  loadFrame: function (dir, n) {
+    var img = new Image();
+    var rec = { img: img, ready: false, failed: false };
+    img.onload = function () { rec.ready = true; };
+    img.onerror = function () { rec.failed = true; };
+    var name = (n < 10 ? "0" : "") + n;
+    img.src = "assets/ui/" + dir + "/" + name + ".png?v=4";
+    return rec;
+  },
+
+  readyFrames: function (list) {
+    var out = [];
+    if (!list) return out;
+    for (var i = 0; i < list.length; i++) {
+      var rec = list[i];
+      if (rec && rec.ready && !rec.failed && rec.img.naturalWidth) out.push(rec.img);
+    }
+    return out;
+  },
+
+  frameAt: function (list, offset) {
+    var ready = this.readyFrames(list);
+    if (!ready.length) return null;
+    var reduce = false;
+    try {
+      reduce = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    } catch (err) { reduce = false; }
+    var step = reduce ? 0 : Math.floor(performance.now() / 90);
+    return ready[(step + (offset || 0)) % ready.length];
   },
 
   spriteReady: function (id) {
@@ -93,7 +134,7 @@ OW.draw = {
   },
 
   // Quiet Earth–Moon silhouette for the main menu. No craft marker.
-  // Hot-swap still image: assets/ui/menu-earth-moon.png (see .menu-sky).
+  // Still image, when it loads: assets/ui/bg/menu-earth-moon.png (see .menu-sky).
   menuBackdrop: function (ctx, t, still) {
     var d = this;
     var earthR = Math.min(d.w, d.h) * 0.46;
@@ -133,6 +174,9 @@ OW.draw = {
         age: 0,
         r: (kind === "crash" ? 3.2 : 2.2) * this.dpr * (0.55 + Math.random()),
         color: colors[i % colors.length],
+        spark: kind === "crash" || kind === "stage",
+        frame: i % 4,
+        size: (kind === "crash" ? 148 : kind === "stage" ? 86 : 0) * this.dpr * (0.42 + Math.random() * 0.85),
       });
     }
   },
@@ -155,13 +199,25 @@ OW.draw = {
     for (var i = 0; i < this.fx.length; i++) {
       var p = this.fx[i];
       var k = 1 - p.age / p.life;
-      ctx.globalAlpha = Math.max(0, k);
-      ctx.fillStyle = p.color;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, Math.max(0.5, p.r * (0.5 + k)), 0, Math.PI * 2);
-      ctx.fill();
+      if (k <= 0) continue;
+      var img = p.spark ? this.frameAt(this.sparks, p.frame + Math.floor((p.age / p.life) * 3)) : null;
+      if (img) {
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        ctx.globalAlpha = Math.max(0, Math.min(1, k));
+        var s = Math.max(8, p.size * (0.72 + 0.28 * k));
+        ctx.drawImage(img, p.x - s / 2, p.y - s / 2, s, s);
+        ctx.restore();
+      } else {
+        ctx.globalAlpha = Math.max(0, k);
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, Math.max(0.5, p.r * (0.5 + k)), 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
     ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = "source-over";
   },
 
   // Draw one part in its local box, nose up (+y). Parent space already has +y up.
@@ -522,15 +578,28 @@ OW.drawChase = function (ctx, vehicle, world) {
     var burn = burns.burns[f];
     var throttle = burn.srb ? 1 : vehicle.throttle;
     if (throttle <= 0.02) continue;
-    var len = (1.2 + Math.random() * 0.8) * throttle * (burn.part.h || 2);
     ctx.save();
     ctx.translate(burn.part.x, burn.part.y - burn.part.h / 2);
-    ctx.fillStyle = burn.srb ? "rgba(255,170,60,0.9)" : "rgba(255,220,120,0.92)";
-    ctx.beginPath();
-    ctx.moveTo(-0.28, 0);
-    ctx.lineTo(0.28, 0);
-    ctx.lineTo(0, -len);
-    ctx.fill();
+    var flame = OW.draw.frameAt(OW.draw.flames, 0);
+    if (flame) {
+      // Local +y is nose-up. Flip so the art's plume points aft.
+      ctx.scale(1, -1);
+      ctx.globalCompositeOperation = "lighter";
+      // Wide enough that the painted plume reads at the chase camera,
+      // where the whole stack is only a few dozen pixels.
+      var fw = Math.max(0.6, (burn.part.w || 1) * 1.35);
+      var aspect = flame.naturalHeight / Math.max(1, flame.naturalWidth);
+      var fh = fw * aspect * (0.55 + 1.15 * throttle);
+      ctx.drawImage(flame, -fw / 2, -fh * 0.06, fw, fh);
+    } else {
+      var len = (1.2 + Math.random() * 0.8) * throttle * (burn.part.h || 2);
+      ctx.fillStyle = burn.srb ? "rgba(255,170,60,0.9)" : "rgba(255,220,120,0.92)";
+      ctx.beginPath();
+      ctx.moveTo(-0.28, 0);
+      ctx.lineTo(0.28, 0);
+      ctx.lineTo(0, -len);
+      ctx.fill();
+    }
     ctx.restore();
   }
   ctx.restore();

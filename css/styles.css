@@ -49,23 +49,32 @@ button.locked { opacity: 0.55; }
 .screen.on { display: flex; }
 
 /*
-  Scenario hot-swap. Placeholders stay until these are uncommented.
-  assets/ui/menu-earth-moon.png
-  .menu-sky.has-art { background: url("../assets/ui/menu-earth-moon.png") center / cover no-repeat; }
-  assets/ui/icon-ignite.png icon-stage.png icon-map.png icon-warp.png icon-pause.png
-  assets/ui/icon-fuel.png icon-warn.png icon-window.png icon-pitch.png icon-throttle.png
-  .ui-icon[data-ui-icon] svg { display: none; }
-  .ui-icon[data-ui-icon="ignite"] { background: url("../assets/ui/icon-ignite.png") center / contain no-repeat; }
-  .ui-icon[data-ui-icon="stage"] { background: url("../assets/ui/icon-stage.png") center / contain no-repeat; }
-  .ui-icon[data-ui-icon="map"] { background: url("../assets/ui/icon-map.png") center / contain no-repeat; }
-  .ui-icon[data-ui-icon="warp"] { background: url("../assets/ui/icon-warp.png") center / contain no-repeat; }
-  .ui-icon[data-ui-icon="pause"] { background: url("../assets/ui/icon-pause.png") center / contain no-repeat; }
-  .ui-icon[data-ui-icon="fuel"] { background: url("../assets/ui/icon-fuel.png") center / contain no-repeat; }
-  .ui-icon[data-ui-icon="warn"] { background: url("../assets/ui/icon-warn.png") center / contain no-repeat; }
-  .ui-icon[data-ui-icon="pitch"] { background: url("../assets/ui/icon-pitch.png") center / contain no-repeat; }
-  .ui-icon[data-ui-icon="throttle"] { background: url("../assets/ui/icon-throttle.png") center / contain no-repeat; }
-  .win-dot[data-ui-icon="window"] { background: url("../assets/ui/icon-window.png") center / contain no-repeat; box-shadow: none; }
+  Scenario art. JS adds .has-art after the file loads.
+  A 404 leaves the inline SVG, the window dot, or the procedural menu.
 */
+.menu-sky.has-art {
+  background: url("../assets/ui/bg/menu-earth-moon.png?v=4") center / cover no-repeat;
+}
+.ui-icon.has-art { width: 22px; height: 22px; }
+.ui-icon.has-art svg { display: none; }
+.btn-col .ui-icon.has-art,
+.stage-capsule .ui-icon.has-art { width: 28px; height: 28px; }
+.ui-icon.has-art[data-ui-icon="ignite"] { background: url("../assets/ui/icons/ignite.png?v=4") center / contain no-repeat; }
+.ui-icon.has-art[data-ui-icon="stage"] { background: url("../assets/ui/icons/stage.png?v=4") center / contain no-repeat; }
+.ui-icon.has-art[data-ui-icon="map"] { background: url("../assets/ui/icons/map.png?v=4") center / contain no-repeat; }
+.ui-icon.has-art[data-ui-icon="warp"] { background: url("../assets/ui/icons/warp.png?v=4") center / contain no-repeat; }
+.ui-icon.has-art[data-ui-icon="pause"] { background: url("../assets/ui/icons/pause.png?v=4") center / contain no-repeat; }
+.ui-icon.has-art[data-ui-icon="fuel"] { background: url("../assets/ui/icons/fuel.png?v=4") center / contain no-repeat; }
+.ui-icon.has-art[data-ui-icon="warn"] { background: url("../assets/ui/icons/warn.png?v=4") center / contain no-repeat; }
+.ui-icon.has-art[data-ui-icon="pitch"] { background: url("../assets/ui/icons/pitch.png?v=4") center / contain no-repeat; }
+.ui-icon.has-art[data-ui-icon="throttle"] { background: url("../assets/ui/icons/throttle.png?v=4") center / contain no-repeat; }
+.win-dot.has-art[data-ui-icon="window"] {
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  box-shadow: none;
+  background: url("../assets/ui/icons/window.png?v=4") center / contain no-repeat;
+}
 
 .ui-icon {
   width: 18px;
@@ -80,7 +89,8 @@ button.locked { opacity: 0.55; }
 
 /* Menu */
 #screen-menu { align-items: center; justify-content: center; padding-bottom: 6vh; }
-.menu-sky { position: absolute; inset: 0; pointer-events: none; }
+.menu-sky { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+#screen-menu > .card { z-index: 1; }
 .card {
   width: min(440px, calc(100% - 28px));
   background: var(--panel);
