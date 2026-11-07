@@ -5,15 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <meta name="theme-color" content="#070b14" />
   <title>星匠 Orbitwright</title>
-  <link rel="stylesheet" href="css/styles.css?v=2" />
+  <link rel="stylesheet" href="css/styles.css?v=3" />
 </head>
 <body>
   <canvas id="view"></canvas>
   <div id="ui">
     <section id="screen-menu" class="screen on">
+      <!-- Procedural Earth–Moon is painted on #view. Hot-swap: assets/ui/menu-earth-moon.png -->
+      <div class="menu-sky" data-asset="assets/ui/menu-earth-moon.png" aria-hidden="true"></div>
       <div class="card">
         <h1>星匠</h1>
         <div class="sub">Orbitwright · 组装、入轨、奔月</div>
+        <div class="menu-progress" id="menu-progress" aria-label="进度">
+          <span class="chk" id="chk-orbit" data-unlock="orbit"><i class="mark" aria-hidden="true"></i>入轨</span>
+          <span class="chk" id="chk-moon" data-unlock="moon"><i class="mark" aria-hidden="true"></i>登月</span>
+        </div>
         <div class="stack">
           <button class="primary" id="btn-moon">登月任务</button>
           <button id="btn-sandbox" disabled>沙盒</button>
@@ -58,10 +64,13 @@
           <div class="stat"><span>起飞推力</span><b id="m-tsl">—</b></div>
           <div class="stat"><span>真空推力</span><b id="m-tvac">—</b></div>
           <div class="stat"><span>TWR</span><b id="m-twr">—</b></div>
+          <div class="hbar" id="meter-twr" data-metric="twr" aria-hidden="true"><i id="bar-twr"></i><em class="tick" data-tick="lift"></em><em class="tick" data-tick="good"></em></div>
           <div class="stat"><span>Δv 大气</span><b id="m-dva">—</b></div>
           <div class="stat"><span>Δv 真空</span><b id="m-dvv">—</b></div>
           <div class="stat"><span>Δv 合计</span><b id="m-dvt">—</b></div>
+          <div class="hbar" id="meter-dv" data-metric="dv" aria-hidden="true"><i id="bar-dv"></i></div>
           <div class="stat"><span>稳定</span><b id="m-stab">—</b></div>
+          <div class="segbar" id="meter-stab" data-metric="stab" aria-hidden="true"><i data-seg="bad"></i><i data-seg="warn"></i><i data-seg="good"></i></div>
           <div id="m-notes"></div>
           <p class="note">数字是抛弃顺序：先固体助推，再从下往上的芯级。不能手动调级。</p>
         </div>
@@ -80,22 +89,89 @@
 
     <section id="screen-flight" class="screen">
       <div class="hud">
-        <div class="hud-card" id="hud-left"></div>
-        <div class="hud-card" id="hud-right"></div>
+        <div class="hud-card hud-cluster" id="hud-left" data-cluster="nav">
+          <div class="hud-bodyline">
+            <strong id="hud-body">地球</strong>
+            <span class="win" id="hud-window" hidden>
+              <i class="win-dot" data-ui-icon="window" data-asset="assets/ui/icon-window.png"></i>
+              <span id="hud-window-label"></span>
+            </span>
+          </div>
+          <div class="read"><span>高度</span><b class="hud-xl" id="hud-alt">—</b></div>
+          <div class="read"><span>垂速</span><b class="hud-xl" id="hud-vs">—</b></div>
+          <div class="hud-sub" id="hud-ground">地速 —</div>
+          <div class="hud-sub" id="hud-orbit">近 — · 远 —</div>
+        </div>
+        <div class="hud-card hud-cluster" id="hud-right" data-cluster="resources">
+          <div class="fuel-head">
+            <span class="hud-k"><span class="ui-icon" data-ui-icon="fuel" data-asset="assets/ui/icon-fuel.png"></span>燃料</span>
+            <b id="hud-fuel-pct">—</b>
+          </div>
+          <div class="hbar" id="hud-fuel-bar" data-metric="fuel"><i id="hud-fuel-fill"></i></div>
+          <div class="throttle-read">
+            <span class="hud-k"><span class="ui-icon" data-ui-icon="throttle" data-asset="assets/ui/icon-throttle.png"></span>油门</span>
+            <div class="mini-v" aria-hidden="true"><i id="hud-throttle-fill"></i></div>
+            <b id="hud-throttle-pct">—</b>
+          </div>
+          <div class="hud-row"><span>TWR</span><b id="hud-twr">—</b></div>
+          <div class="hud-row q-read" id="hud-q">
+            <span><span class="ui-icon" data-ui-icon="warn" data-asset="assets/ui/icon-warn.png"></span>动压</span>
+            <b id="hud-q-val">—</b>
+          </div>
+          <div class="hud-sub" id="hud-q-note"></div>
+          <div class="hud-sub" id="hud-hover"></div>
+        </div>
       </div>
       <div class="hint" id="flight-hint"></div>
       <div class="warp-badge" id="warp-badge"></div>
-      <div class="vs-bar" id="vs-bar"><div class="vs-mark" id="vs-mark"></div></div>
-      <div class="controls">
-        <div class="stick" id="stick" aria-label="倾转"><div class="knob" id="stick-knob"></div></div>
-        <div class="btn-col">
-          <button id="btn-ignite" class="primary">点火</button>
-          <button id="btn-stage">分级</button>
-          <button id="btn-cam">轨道图</button>
-          <button id="btn-warp">1×</button>
-          <button id="btn-pause">暂停</button>
+      <div class="vs-dock" id="vs-dock">
+        <div class="vs-readout">
+          <b id="vs-read">0</b>
+          <span id="vs-label">垂速</span>
         </div>
-        <div class="throttle" id="throttle" aria-label="油门"><div class="knob" id="throttle-knob"></div></div>
+        <div class="vs-bar" id="vs-bar" data-zone="landing" aria-hidden="true">
+          <div class="vs-zone" id="vs-zone"></div>
+          <div class="vs-mark" id="vs-mark"></div>
+        </div>
+      </div>
+      <div class="controls">
+        <div class="stick" id="stick" aria-label="倾转">
+          <span class="axis-label"><span class="ui-icon" data-ui-icon="pitch" data-asset="assets/ui/icon-pitch.png"></span>俯仰</span>
+          <div class="axis-ticks" aria-hidden="true"></div>
+          <div class="knob" id="stick-knob"></div>
+        </div>
+        <div class="btn-col">
+          <div class="stage-capsule" id="stage-capsule">
+            <span class="ui-icon" data-ui-icon="stage" data-asset="assets/ui/icon-stage.png"></span>
+            <span><em>下一抛</em><b id="stage-name">—</b></span>
+          </div>
+          <button id="btn-ignite" class="primary" data-ui-icon="ignite">
+            <span class="ui-icon" data-ui-icon="ignite" data-asset="assets/ui/icon-ignite.png"></span>
+            <span class="lbl">点火</span>
+          </button>
+          <button id="btn-stage" data-ui-icon="stage">
+            <span class="ui-icon" data-ui-icon="stage" data-asset="assets/ui/icon-stage.png"></span>
+            <span class="lbl">分级</span>
+          </button>
+          <button id="btn-cam" data-ui-icon="map">
+            <span class="ui-icon" data-ui-icon="map" data-asset="assets/ui/icon-map.png"></span>
+            <span class="lbl">轨道图</span>
+          </button>
+          <button id="btn-warp" data-ui-icon="warp">
+            <span class="ui-icon" data-ui-icon="warp" data-asset="assets/ui/icon-warp.png"></span>
+            <span class="lbl">1×</span>
+          </button>
+          <button id="btn-pause" data-ui-icon="pause">
+            <span class="ui-icon" data-ui-icon="pause" data-asset="assets/ui/icon-pause.png"></span>
+            <span class="lbl">暂停</span>
+          </button>
+        </div>
+        <div class="throttle" id="throttle" aria-label="油门">
+          <span class="axis-label"><span class="ui-icon" data-ui-icon="throttle" data-asset="assets/ui/icon-throttle.png"></span>油门</span>
+          <div class="axis-ticks" aria-hidden="true"></div>
+          <div class="throttle-fill" id="throttle-fill"></div>
+          <div class="knob" id="throttle-knob"></div>
+        </div>
       </div>
     </section>
 
@@ -123,16 +199,17 @@
       </div>
     </section>
 
+    <div id="juice-flash" aria-hidden="true"></div>
     <div id="banner"></div>
     <div id="toast"></div>
   </div>
-  <script src="js/tune.js?v=2"></script>
-  <script src="js/parts.js?v=2"></script>
-  <script src="js/craft.js?v=2"></script>
-  <script src="js/physics.js?v=2"></script>
-  <script src="js/save.js?v=2"></script>
-  <script src="js/audio.js?v=2"></script>
-  <script src="js/draw.js?v=2"></script>
-  <script src="js/game.js?v=2"></script>
+  <script src="js/tune.js?v=3"></script>
+  <script src="js/parts.js?v=3"></script>
+  <script src="js/craft.js?v=3"></script>
+  <script src="js/physics.js?v=3"></script>
+  <script src="js/save.js?v=3"></script>
+  <script src="js/audio.js?v=3"></script>
+  <script src="js/draw.js?v=3"></script>
+  <script src="js/game.js?v=3"></script>
 </body>
 </html>
