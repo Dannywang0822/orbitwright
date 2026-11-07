@@ -1,15 +1,23 @@
-Scenario art is not shipped. Placeholders are inline SVG (data-ui-icon) and a procedural Earth–Moon backdrop on the menu canvas.
+Scenario UI art lives under assets/ui/. CSS shows a PNG only after JS adds
+.has-art (the image loaded). Until then the inline SVG, the window dot, and the
+procedural Earth–Moon stay in place.
 
-Drop a PNG at the path below, then uncomment the matching rule in css/styles.css (search "hot-swap").
+assets/ui/bg/menu-earth-moon.png   1536×1024  .menu-sky.has-art
+assets/ui/icons/ignite.png         64×64      .ui-icon.has-art[data-ui-icon="ignite"]
+assets/ui/icons/stage.png          64×64      .ui-icon.has-art[data-ui-icon="stage"]
+assets/ui/icons/map.png            64×64      .ui-icon.has-art[data-ui-icon="map"]
+assets/ui/icons/warp.png           64×64      .ui-icon.has-art[data-ui-icon="warp"]
+assets/ui/icons/pause.png          64×64      .ui-icon.has-art[data-ui-icon="pause"]
+assets/ui/icons/fuel.png           64×64      .ui-icon.has-art[data-ui-icon="fuel"]
+assets/ui/icons/warn.png           64×64      .ui-icon.has-art[data-ui-icon="warn"]
+assets/ui/icons/window.png         64×64      .win-dot.has-art[data-ui-icon="window"]
+assets/ui/icons/pitch.png          64×64      .ui-icon.has-art[data-ui-icon="pitch"]
+assets/ui/icons/throttle.png       64×64      .ui-icon.has-art[data-ui-icon="throttle"]
 
-assets/ui/menu-earth-moon.png   1536×1024  .menu-sky[data-asset]
-assets/ui/icon-ignite.png       64×64      .ui-icon[data-ui-icon="ignite"]
-assets/ui/icon-stage.png        64×64      .ui-icon[data-ui-icon="stage"]
-assets/ui/icon-map.png          64×64      .ui-icon[data-ui-icon="map"]
-assets/ui/icon-warp.png         64×64      .ui-icon[data-ui-icon="warp"]
-assets/ui/icon-pause.png        64×64      .ui-icon[data-ui-icon="pause"]
-assets/ui/icon-fuel.png         64×64      .ui-icon[data-ui-icon="fuel"]
-assets/ui/icon-warn.png         64×64      .ui-icon[data-ui-icon="warn"]
-assets/ui/icon-window.png       64×64      .win-dot[data-ui-icon="window"]
-assets/ui/icon-pitch.png        64×64      .ui-icon[data-ui-icon="pitch"]
-assets/ui/icon-throttle.png     64×64      .ui-icon[data-ui-icon="throttle"]
+Drawn on the flight canvas (js/draw.js), not CSS. Triangle flame and circle
+particles remain if a frame fails to load. Both use additive blending.
+
+assets/ui/flame/01.png … 04.png    128×256    engine plume, 4 frames
+assets/ui/spark/01.png … 04.png    256×256    crash and staging burst
+
+Pause has no backdrop hook. The frozen flight view stays behind the pause card.
