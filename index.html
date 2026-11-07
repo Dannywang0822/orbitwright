@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#070b14" />
+  <title>星匠 Orbitwright</title>
+  <link rel="stylesheet" href="css/styles.css?v=1" />
+</head>
+<body>
+  <canvas id="view"></canvas>
+  <div id="ui">
+    <section id="screen-menu" class="screen on">
+      <div class="card">
+        <h1>星匠</h1>
+        <div class="sub">Orbitwright · 组装、入轨、奔月</div>
+        <div class="stack">
+          <button class="primary" id="btn-moon">登月任务</button>
+          <button id="btn-sandbox" disabled>沙盒</button>
+          <button id="btn-howto">怎么玩</button>
+          <button id="btn-mute">声音：关</button>
+        </div>
+        <div class="foot">单机 · 地球与月球 · v1</div>
+      </div>
+    </section>
+
+    <section id="screen-howto" class="screen">
+      <div class="card howto">
+        <h2>怎么玩</h2>
+        <div class="tips">
+          <div class="tip"><b>1 堆叠，侧挂</b><span>指令舱在最上，着陆架在最下。固体助推挂在油箱两侧。</span></div>
+          <div class="tip"><b>2 升空别翻</b><span>先竖直穿过大气。动压高的时候别猛打方向，翻过去会散架。</span></div>
+          <div class="tip"><b>3 水平加速入轨</b><span>出了大气再放平，烧到近地点抬出大气。横幅亮了就是入轨。</span></div>
+          <div class="tip"><b>4 月面要慢、要立直</b><span>奔月窗口变绿时朝前加速。落地前垂速放慢，机头朝上，留着陆架。</span></div>
+        </div>
+        <div class="row" style="margin-top:14px">
+          <button class="primary" id="btn-howto-back">返回</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="screen-hangar" class="screen">
+      <div class="hangar-top">
+        <button id="btn-hangar-back">返回</button>
+        <strong id="hangar-title">组装舱</strong>
+        <button id="btn-fuel-mode">满油</button>
+      </div>
+      <div class="hangar-main">
+        <div class="palette">
+          <h3>零件</h3>
+          <div class="cats" id="cats"></div>
+          <div id="part-list"></div>
+        </div>
+        <div></div>
+        <div class="metrics">
+          <h3>读数 · 估算 ±15%</h3>
+          <div class="stat"><span>质量</span><b id="m-mass">—</b></div>
+          <div class="stat"><span>起飞推力</span><b id="m-tsl">—</b></div>
+          <div class="stat"><span>真空推力</span><b id="m-tvac">—</b></div>
+          <div class="stat"><span>TWR</span><b id="m-twr">—</b></div>
+          <div class="stat"><span>Δv 大气</span><b id="m-dva">—</b></div>
+          <div class="stat"><span>Δv 真空</span><b id="m-dvv">—</b></div>
+          <div class="stat"><span>Δv 合计</span><b id="m-dvt">—</b></div>
+          <div class="stat"><span>稳定</span><b id="m-stab">—</b></div>
+          <div id="m-notes"></div>
+          <p class="note">数字是抛弃顺序：先固体助推，再从下往上的芯级。不能手动调级。</p>
+        </div>
+      </div>
+      <div class="hangar-bottom">
+        <div class="sel-label" id="sel-label">点零件，再点吸附点</div>
+        <div class="row">
+          <button id="btn-starter">新手船</button>
+          <button id="btn-moonship">奔月船</button>
+          <button id="btn-remove" disabled>拆除</button>
+          <button id="btn-clear">清空</button>
+          <button class="primary" id="btn-launch">推到发射台</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="screen-flight" class="screen">
+      <div class="hud">
+        <div class="hud-card" id="hud-left"></div>
+        <div class="hud-card" id="hud-right"></div>
+      </div>
+      <div class="hint" id="flight-hint"></div>
+      <div class="warp-badge" id="warp-badge"></div>
+      <div class="vs-bar" id="vs-bar"><div class="vs-mark" id="vs-mark"></div></div>
+      <div class="controls">
+        <div class="stick" id="stick" aria-label="倾转"><div class="knob" id="stick-knob"></div></div>
+        <div class="btn-col">
+          <button id="btn-ignite" class="primary">点火</button>
+          <button id="btn-stage">分级</button>
+          <button id="btn-cam">轨道图</button>
+          <button id="btn-warp">1×</button>
+          <button id="btn-pause">暂停</button>
+        </div>
+        <div class="throttle" id="throttle" aria-label="油门"><div class="knob" id="throttle-knob"></div></div>
+      </div>
+    </section>
+
+    <section id="screen-pause" class="screen">
+      <div class="card">
+        <h2>暂停</h2>
+        <div class="stack">
+          <button class="primary" id="btn-resume">继续飞</button>
+          <button id="btn-abort">放弃，回组装舱</button>
+          <button id="btn-pause-menu">回主菜单</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="screen-debrief" class="screen">
+      <div class="card">
+        <div class="sub" id="debrief-kicker">试飞结束</div>
+        <p class="lead" id="debrief-lead"></p>
+        <div class="stats" id="debrief-stats"></div>
+        <div class="stack" style="margin-top:14px">
+          <button class="primary" id="btn-retry">回组装舱再试</button>
+          <button id="btn-debrief-sandbox" style="display:none">进入沙盒</button>
+          <button id="btn-debrief-menu">回主菜单</button>
+        </div>
+      </div>
+    </section>
+
+    <div id="banner"></div>
+    <div id="toast"></div>
+  </div>
+  <script src="js/tune.js?v=1"></script>
+  <script src="js/parts.js?v=1"></script>
+  <script src="js/craft.js?v=1"></script>
+  <script src="js/physics.js?v=1"></script>
+  <script src="js/save.js?v=1"></script>
+  <script src="js/audio.js?v=1"></script>
+  <script src="js/draw.js?v=1"></script>
+  <script src="js/game.js?v=1"></script>
+</body>
+</html>
