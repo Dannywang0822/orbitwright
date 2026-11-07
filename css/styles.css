@@ -93,7 +93,9 @@ button.locked { opacity: 0.55; }
 .cats button.on { background: var(--accent); color: var(--accent-ink); }
 .part-btn { width: 100%; text-align: left; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
 .part-btn.on { outline: 2px solid var(--accent); }
-.swatch { width: 14px; height: 14px; border-radius: 3px; display: inline-block; margin-right: 6px; }
+.swatch { width: 14px; height: 14px; border-radius: 3px; display: inline-block; margin-right: 6px; vertical-align: middle; }
+.part-icon { width: 22px; height: 22px; object-fit: contain; vertical-align: middle; margin-right: 6px; }
+.part-btn img.part-icon { display: inline-block; }
 .metrics .stat { display: flex; justify-content: space-between; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
 .metrics .stat b { font-variant-numeric: tabular-nums; }
 .good { color: var(--good); }

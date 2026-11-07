@@ -3,6 +3,7 @@
   var canvas = document.getElementById("view");
   var ctx = canvas.getContext("2d");
   OW.draw.resize(canvas);
+  OW.draw.loadSprites();
 
   var save = OW.loadSave();
   OW.audio.muted = save.settings.muted;
@@ -130,8 +131,23 @@
       var unlocked = OW.partUnlocked(id, save);
       var b = document.createElement("button");
       b.className = "part-btn" + (selectedId === id ? " on" : "") + (unlocked ? "" : " locked");
-      b.innerHTML = '<span><i class="swatch" style="background:' + def.color + '"></i>' + def.name + "</span>";
-      if (!unlocked) b.innerHTML += "<span>锁</span>";
+      var icon = OW.SPRITE_FILES[id]
+        ? '<img class="part-icon" alt="" src="assets/parts/' + OW.SPRITE_FILES[id] + '?v=2">'
+        : "";
+      b.innerHTML = '<span><i class="swatch" style="background:' + def.color + '"></i>' + icon + def.name + "</span>";
+      var iconEl = b.querySelector("img");
+      if (iconEl) {
+        iconEl.onload = function () {
+          var sw = b.querySelector(".swatch");
+          if (sw) sw.style.display = "none";
+        };
+        iconEl.onerror = function () { iconEl.remove(); };
+      }
+      if (!unlocked) {
+        var lock = document.createElement("span");
+        lock.textContent = "锁";
+        b.appendChild(lock);
+      }
       b.onclick = function () {
         if (!unlocked) { toast(OW.unlockHint(id)); return; }
         selectedId = selectedId === id ? null : id;

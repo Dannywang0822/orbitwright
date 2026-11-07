@@ -1,0 +1,10 @@
+[
+  {"id": "cmd_mk1", "file": "command_capsule.png", "sheet_crop": [78, 229, 306, 484]},
+  {"id": "tank_s", "file": "fuel_tank_s.png", "sheet_crop": [492, 264, 659, 484]},
+  {"id": "tank_m", "file": "fuel_tank_m.png", "sheet_crop": [877, 136, 1044, 484]},
+  {"id": "tank_l", "file": "fuel_tank_l.png", "sheet_crop": [1278, 32, 1421, 484]},
+  {"id": "eng_main", "file": "main_engine.png", "sheet_crop": [96, 597, 289, 912]},
+  {"id": "eng_vac", "file": "vacuum_engine.png", "sheet_crop": [444, 587, 708, 940]},
+  {"id": "boost_srb", "file": "solid_booster.png", "sheet_crop": [921, 541, 1000, 975]},
+  {"id": "leg_basic", "file": "landing_leg.png", "sheet_crop": [1210, 593, 1492, 940]}
+]

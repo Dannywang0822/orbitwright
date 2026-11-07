@@ -1,9 +1,50 @@
 // Canvas drawing for hangar, chase camera, and the Earth–Moon map.
+OW.SPRITE_FILES = {
+  cmd_mk1: "command_capsule.png",
+  tank_s: "fuel_tank_s.png",
+  tank_m: "fuel_tank_m.png",
+  tank_l: "fuel_tank_l.png",
+  eng_main: "main_engine.png",
+  eng_vac: "vacuum_engine.png",
+  boost_srb: "solid_booster.png",
+  leg_basic: "landing_leg.png",
+};
+
+// Opaque bounds inside each PNG so the rims, not the transparent margin, meet.
+OW.SPRITE_CROP = {
+  cmd_mk1: [4, 3, 220, 248],
+  tank_s: [4, 4, 160, 212],
+  tank_m: [3, 4, 160, 340],
+  tank_l: [3, 4, 137, 444],
+  eng_main: [4, 4, 185, 307],
+  eng_vac: [4, 4, 256, 345],
+  boost_srb: [4, 4, 71, 427],
+  leg_basic: [3, 4, 276, 339],
+};
+
 OW.draw = {
   stars: null,
   dpr: 1,
   w: 0,
   h: 0,
+  sprites: {},
+
+  loadSprites: function () {
+    var self = this;
+    Object.keys(OW.SPRITE_FILES).forEach(function (id) {
+      var img = new Image();
+      var rec = { img: img, ready: false, failed: false };
+      img.onload = function () { rec.ready = true; };
+      img.onerror = function () { rec.failed = true; };
+      img.src = "assets/parts/" + OW.SPRITE_FILES[id] + "?v=2";
+      self.sprites[id] = rec;
+    });
+  },
+
+  spriteReady: function (id) {
+    var rec = this.sprites[id];
+    return !!(rec && rec.ready && !rec.failed && rec.img.naturalWidth);
+  },
 
   resize: function (canvas) {
     var dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -50,13 +91,67 @@ OW.draw = {
     ctx.globalAlpha = 1;
   },
 
-  // Draw one part in its local box, nose up (+y). ctx is already translated to the center.
+  // Draw one part in its local box, nose up (+y). Parent space already has +y up.
   part: function (ctx, part, opts) {
     var def = OW.PARTS[part.partId];
     var w = part.w;
     var h = part.h;
     ctx.save();
     ctx.translate(part.x, part.y);
+    if (this.spriteReady(part.partId)) {
+      this.paintSprite(ctx, this.sprites[part.partId].img, part);
+    } else {
+      this.paintBlock(ctx, def, part);
+    }
+    if (opts && opts.selected) {
+      ctx.strokeStyle = "#ffb020";
+      ctx.lineWidth = 0.1;
+      ctx.strokeRect(-w / 2 - 0.12, -h / 2 - 0.12, w + 0.24, h + 0.24);
+    }
+    ctx.restore();
+  },
+
+  // Image rows point down; flip so the sprite nose sits on the physics top.
+  paintSprite: function (ctx, img, part) {
+    var def = OW.PARTS[part.partId];
+    ctx.save();
+    ctx.imageSmoothingEnabled = true;
+    if (def.kind === "legs") {
+      this.paintLeg(ctx, img, part, 1);
+      this.paintLeg(ctx, img, part, -1);
+      ctx.restore();
+      return;
+    }
+    ctx.scale(1, -1);
+    var crop = OW.SPRITE_CROP[part.partId] || [0, 0, img.width, img.height];
+    var w = part.w;
+    var h = part.h;
+    // Draw into the parts-table box so the top rim, the bottom rim, and the
+    // booster gap all land on the same edges the physics uses.
+    var tuck = def.kind === "booster" ? 0 : Math.min(0.08, h * 0.03);
+    ctx.drawImage(img, crop[0], crop[1], crop[2], crop[3], -w / 2, -h / 2 - tuck / 2, w, h + tuck);
+    ctx.restore();
+  },
+
+  // One approved leg graphic, mirrored. The joint is the top-left of the art;
+  // the foot runs down and outward. Height matches the leg slot so the joint
+  // sits on the part above and the foot is on the bottom attach.
+  paintLeg: function (ctx, img, part, side) {
+    var crop = OW.SPRITE_CROP.leg_basic;
+    var h = part.h;
+    var dw = h * (crop[2] / crop[3]);
+    // Joint sits just inside the left edge of the cropped art.
+    var jointFrac = 0.12;
+    ctx.save();
+    ctx.scale(side, -1);
+    var xLeft = 0.16 - jointFrac * dw;
+    ctx.drawImage(img, crop[0], crop[1], crop[2], crop[3], xLeft, -h / 2, dw, h);
+    ctx.restore();
+  },
+
+  paintBlock: function (ctx, def, part) {
+    var w = part.w;
+    var h = part.h;
     var fuelFrac = part.fuelMax > 0 ? Math.max(0, part.fuel / part.fuelMax) : 0;
     ctx.fillStyle = def.color;
     ctx.strokeStyle = "rgba(0,0,0,0.35)";
@@ -128,12 +223,6 @@ OW.draw = {
       ctx.fillRect(-w * 0.48, -h * 0.48, w * 0.16, h * 0.16);
       ctx.fillRect(w * 0.32, -h * 0.48, w * 0.16, h * 0.16);
     }
-    if (opts && opts.selected) {
-      ctx.strokeStyle = "#ffb020";
-      ctx.lineWidth = 0.1;
-      ctx.strokeRect(-w / 2 - 0.12, -h / 2 - 0.12, w + 0.24, h + 0.24);
-    }
-    ctx.restore();
   },
 
   hangar: function (ctx, craft, save, selectedId, selectedUid, cam) {
