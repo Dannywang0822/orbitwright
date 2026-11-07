@@ -28,6 +28,7 @@ OW.draw = {
   w: 0,
   h: 0,
   sprites: {},
+  fx: [],
 
   loadSprites: function () {
     var self = this;
@@ -36,7 +37,7 @@ OW.draw = {
       var rec = { img: img, ready: false, failed: false };
       img.onload = function () { rec.ready = true; };
       img.onerror = function () { rec.failed = true; };
-      img.src = "assets/parts/" + OW.SPRITE_FILES[id] + "?v=2";
+      img.src = "assets/parts/" + OW.SPRITE_FILES[id] + "?v=3";
       self.sprites[id] = rec;
     });
   },
@@ -86,6 +87,78 @@ OW.draw = {
       ctx.fillStyle = "#d5e4f5";
       ctx.beginPath();
       ctx.arc(s.x * this.w, s.y * this.h, s.r * this.dpr, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  },
+
+  // Quiet Earth–Moon silhouette for the main menu. No craft marker.
+  // Hot-swap still image: assets/ui/menu-earth-moon.png (see .menu-sky).
+  menuBackdrop: function (ctx, t, still) {
+    var d = this;
+    var earthR = Math.min(d.w, d.h) * 0.46;
+    drawBody(ctx, { x: d.w * 0.5, y: d.h * 0.94 }, earthR, "earth");
+    var ang = still ? 0.6 : (t || 0) * 0.05;
+    var moonR = Math.max(18 * d.dpr, earthR * 0.2);
+    drawBody(ctx, {
+      x: d.w * (0.8 + Math.cos(ang) * 0.015),
+      y: d.h * (0.16 + Math.sin(ang) * 0.012),
+    }, moonR, "moon");
+    ctx.beginPath();
+    ctx.arc(d.w * 0.5, d.h * 0.94, earthR * 1.55, Math.PI * 1.15, Math.PI * 1.72);
+    ctx.strokeStyle = "rgba(180, 200, 220, 0.18)";
+    ctx.lineWidth = 1.5 * d.dpr;
+    ctx.stroke();
+  },
+
+  spawnFx: function (kind) {
+    var n = kind === "crash" ? 36 : kind === "stage" ? 24 : 28;
+    var cx = this.w * 0.5;
+    var cy = kind === "orbit" ? this.h * 0.28 : this.h * 0.58;
+    var colors = kind === "crash"
+      ? ["#ff5d6c", "#ffb020", "#fff2c2", "#ff8a5b"]
+      : kind === "stage"
+        ? ["#ffe08a", "#ffb020", "#ffffff"]
+        : ["#3dd68c", "#d8ffe9", "#7ee0ff"];
+    var speed = (kind === "crash" ? 220 : 140) * this.dpr;
+    for (var i = 0; i < n; i++) {
+      var a = kind === "orbit" ? (i / n) * Math.PI * 2 : Math.random() * Math.PI * 2;
+      var s = speed * (kind === "orbit" ? 0.55 + (i % 5) * 0.08 : 0.25 + Math.random() * 0.85);
+      this.fx.push({
+        x: cx,
+        y: cy,
+        vx: Math.cos(a) * s,
+        vy: Math.sin(a) * s * (kind === "orbit" ? 0.55 : 1),
+        life: 0.4 + Math.random() * 0.35,
+        age: 0,
+        r: (kind === "crash" ? 3.2 : 2.2) * this.dpr * (0.55 + Math.random()),
+        color: colors[i % colors.length],
+      });
+    }
+  },
+
+  stepFx: function (dt) {
+    for (var i = this.fx.length - 1; i >= 0; i--) {
+      var p = this.fx[i];
+      p.age += dt;
+      if (p.age >= p.life) {
+        this.fx.splice(i, 1);
+        continue;
+      }
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vy += 90 * this.dpr * dt;
+    }
+  },
+
+  paintFx: function (ctx) {
+    for (var i = 0; i < this.fx.length; i++) {
+      var p = this.fx[i];
+      var k = 1 - p.age / p.life;
+      ctx.globalAlpha = Math.max(0, k);
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, Math.max(0.5, p.r * (0.5 + k)), 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.globalAlpha = 1;
@@ -366,6 +439,7 @@ OW.drawFlight = function (ctx, vehicle, world, canvas, mode, mapCam, prediction)
   d.sky(ctx);
   if (mode === "map") OW.drawMap(ctx, vehicle, world, mapCam, prediction);
   else OW.drawChase(ctx, vehicle, world);
+  d.paintFx(ctx);
 };
 
 OW.drawChase = function (ctx, vehicle, world) {

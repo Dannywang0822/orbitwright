@@ -31,6 +31,7 @@
   var bannerTimer = 0;
   var endTimer = 0;
   var stats = { maxAlt: 0 };
+  var crashJuiced = false;
 
   var el = {
     menu: document.getElementById("screen-menu"),
@@ -48,12 +49,102 @@
     hint: document.getElementById("flight-hint"),
     hudL: document.getElementById("hud-left"),
     hudR: document.getElementById("hud-right"),
+    hudBody: document.getElementById("hud-body"),
+    hudAlt: document.getElementById("hud-alt"),
+    hudVs: document.getElementById("hud-vs"),
+    hudGround: document.getElementById("hud-ground"),
+    hudOrbit: document.getElementById("hud-orbit"),
+    hudWindow: document.getElementById("hud-window"),
+    hudWindowLabel: document.getElementById("hud-window-label"),
+    hudFuelPct: document.getElementById("hud-fuel-pct"),
+    hudFuelFill: document.getElementById("hud-fuel-fill"),
+    hudFuelBar: document.getElementById("hud-fuel-bar"),
+    hudThrottlePct: document.getElementById("hud-throttle-pct"),
+    hudThrottleFill: document.getElementById("hud-throttle-fill"),
+    hudTwr: document.getElementById("hud-twr"),
+    hudQ: document.getElementById("hud-q"),
+    hudQVal: document.getElementById("hud-q-val"),
+    hudQNote: document.getElementById("hud-q-note"),
+    hudHover: document.getElementById("hud-hover"),
+    stageName: document.getElementById("stage-name"),
+    stageCap: document.getElementById("stage-capsule"),
     warp: document.getElementById("warp-badge"),
     banner: document.getElementById("banner"),
     toast: document.getElementById("toast"),
-    vs: document.getElementById("vs-bar"),
+    flash: document.getElementById("juice-flash"),
+    vsDock: document.getElementById("vs-dock"),
     vsMark: document.getElementById("vs-mark"),
+    vsZone: document.getElementById("vs-zone"),
+    vsRead: document.getElementById("vs-read"),
+    vsLabel: document.getElementById("vs-label"),
+    chkOrbit: document.getElementById("chk-orbit"),
+    chkMoon: document.getElementById("chk-moon"),
   };
+
+  var UI_ICONS = {
+    ignite: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2.2c.6 2.4-.2 3.6-1.3 4.8 1.7.2 3.3 1.5 3.3 3.8 0 2.6-1.9 4.6-4.2 4.6S5.6 13.4 5.6 10.8c0-1.6.9-2.8 1.8-3.6C6.4 6 7 4.3 7.8 2.8 8.9 4.2 10.2 4.9 11 4.9c.2-1.1.5-1.9 1-2.7z"/></svg>',
+    stage: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 4h10M8 8h8M9 12h6"/><path d="M12 12v7M9 16l3 3 3-3"/></svg>',
+    map: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><ellipse cx="12" cy="12" rx="3.4" ry="8"/><path d="M4 12h16"/></svg>',
+    warp: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M5 6.5l7 5.5-7 5.5V6.5zm8 0l7 5.5-7 5.5V6.5z"/></svg>',
+    pause: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M7 5h3.2v14H7zM13.8 5H17v14h-3.2z"/></svg>',
+    fuel: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M8 20V8l4-3 4 3v12H8z"/><path d="M8 12h8"/></svg>',
+    warn: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 4l8 14H4z"/><path d="M12 10v4M12 16.5v.5" stroke-linecap="round"/></svg>',
+    pitch: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M6 9l6-6 6 6M6 15l6 6 6-6"/></svg>',
+    throttle: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v18"/><path d="M8 14h8" stroke-width="3"/></svg>',
+  };
+
+  function paintIcons() {
+    var nodes = document.querySelectorAll(".ui-icon[data-ui-icon]");
+    for (var i = 0; i < nodes.length; i++) {
+      var name = nodes[i].getAttribute("data-ui-icon");
+      if (!UI_ICONS[name] || nodes[i].querySelector("svg")) continue;
+      nodes[i].innerHTML = UI_ICONS[name];
+    }
+  }
+  paintIcons();
+
+  function reducedMotion() {
+    return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  }
+
+  function setText(node, text) {
+    if (node && node.textContent !== text) node.textContent = text;
+  }
+
+  function setControlLabel(id, text) {
+    var btn = document.getElementById(id);
+    if (!btn) return;
+    var lbl = btn.querySelector(".lbl");
+    if (lbl) setText(lbl, text);
+    else setText(btn, text);
+  }
+
+  function pulseClass(node, cls) {
+    if (!node) return;
+    node.classList.remove(cls);
+    void node.offsetWidth;
+    node.classList.add(cls);
+  }
+
+  function shakeScreen() {
+    if (reducedMotion()) return;
+    pulseClass(document.body, "screen-shake");
+  }
+
+  function flashJuice(kind) {
+    if (!el.flash) return;
+    el.flash.className = "";
+    void el.flash.offsetWidth;
+    el.flash.className = "on " + kind;
+  }
+
+  function paintThrottle() {
+    var pct = vehicle ? vehicle.throttle : 0;
+    var h = (Math.max(0, Math.min(1, pct)) * 100) + "%";
+    var groove = document.getElementById("throttle-fill");
+    if (groove) groove.style.height = h;
+    if (el.hudThrottleFill) el.hudThrottleFill.style.height = h;
+  }
 
   function show(name) {
     screen = name;
@@ -68,9 +159,10 @@
     toastTimer = 2.6;
   }
 
-  function banner(text) {
+  function banner(text, kind) {
     el.banner.textContent = text;
     el.banner.classList.add("on");
+    el.banner.classList.toggle("ring", kind === "orbit");
     bannerTimer = 4.2;
   }
 
@@ -78,6 +170,8 @@
     el.sandbox.disabled = !save.moonCleared;
     el.sandbox.textContent = save.moonCleared ? "沙盒" : "沙盒（登月后解锁）";
     el.mute.textContent = OW.audio.muted ? "声音：关" : "声音：开";
+    if (el.chkOrbit) el.chkOrbit.classList.toggle("done", !!save.orbitReached);
+    if (el.chkMoon) el.chkMoon.classList.toggle("done", !!save.moonCleared);
   }
 
   function persist() {
@@ -132,7 +226,7 @@
       var b = document.createElement("button");
       b.className = "part-btn" + (selectedId === id ? " on" : "") + (unlocked ? "" : " locked");
       var icon = OW.SPRITE_FILES[id]
-        ? '<img class="part-icon" alt="" src="assets/parts/' + OW.SPRITE_FILES[id] + '?v=2">'
+        ? '<img class="part-icon" alt="" src="assets/parts/' + OW.SPRITE_FILES[id] + '?v=3">'
         : "";
       b.innerHTML = '<span><i class="swatch" style="background:' + def.color + '"></i>' + icon + def.name + "</span>";
       var iconEl = b.querySelector("img");
@@ -170,6 +264,14 @@
     document.getElementById("m-dva").textContent = Math.round(m.dvAtm) + " m/s";
     document.getElementById("m-dvv").textContent = Math.round(m.dvVac) + " m/s";
     document.getElementById("m-dvt").textContent = Math.round(m.dvTotal) + " m/s";
+    paintMeter("meter-twr", "bar-twr", Math.max(0, Math.min(1, m.twr / 2)), m.twrClass === "mid" ? "warn" : m.twrClass);
+    var dvCls = m.dvTotal >= 9000 ? "good" : m.dvTotal >= 4000 ? "warn" : "bad";
+    paintMeter("meter-dv", "bar-dv", Math.max(0, Math.min(1, m.dvTotal / 16000)), dvCls);
+    var stabMeter = document.getElementById("meter-stab");
+    if (stabMeter) {
+      var segs = stabMeter.querySelectorAll("[data-seg]");
+      for (var s = 0; s < segs.length; s++) segs[s].classList.toggle("on", segs[s].getAttribute("data-seg") === m.stab);
+    }
     var st = document.getElementById("m-stab");
     st.textContent = m.stabText;
     st.className = m.stab === "good" ? "good" : m.stab === "warn" ? "warn" : "bad";
@@ -177,6 +279,7 @@
     m.errors.forEach(function (t) {
       var p = document.createElement("div");
       p.className = "msg bad";
+      p.setAttribute("data-validate", "hard");
       p.textContent = t;
       el.notes.appendChild(p);
     });
@@ -186,7 +289,9 @@
       p.textContent = t;
       el.notes.appendChild(p);
     });
-    document.getElementById("btn-launch").disabled = !m.ok;
+    var launchBtn = document.getElementById("btn-launch");
+    launchBtn.classList.toggle("is-blocked", !m.ok);
+    launchBtn.setAttribute("aria-disabled", m.ok ? "false" : "true");
     document.getElementById("btn-remove").disabled = !selectedUid;
     var name = "点零件，再点金色吸附点";
     if (selectedId) name = "已选 " + OW.PARTS[selectedId].name + " · 点吸附点放下";
@@ -217,10 +322,28 @@
     OW.writeDraft(craft);
     refreshHangar();
   };
+  function paintMeter(meterId, fillId, frac, cls) {
+    var meter = document.getElementById(meterId);
+    var fill = document.getElementById(fillId);
+    if (!meter || !fill) return;
+    fill.style.width = (Math.max(0, Math.min(1, frac)) * 100) + "%";
+    meter.classList.remove("good", "warn", "bad");
+    if (cls) meter.classList.add(cls);
+  }
+
   document.getElementById("btn-launch").onclick = function () {
     var m = OW.metrics(craft, "full");
     if (!m.ok) {
       toast(m.errors[0] || "还不能发射");
+      var btn = document.getElementById("btn-launch");
+      if (!reducedMotion()) pulseClass(btn, "shake");
+      var bad = el.notes.querySelector(".msg.bad");
+      if (bad) {
+        var prev = el.notes.querySelector(".msg.target");
+        if (prev) prev.classList.remove("target");
+        bad.classList.add("target");
+        bad.scrollIntoView({ block: "nearest", behavior: reducedMotion() ? "auto" : "smooth" });
+      }
       return;
     }
     OW.writeDraft(craft);
@@ -273,8 +396,11 @@
     prediction = null;
     endTimer = 0;
     stats = { maxAlt: 0 };
+    crashJuiced = false;
+    OW.draw.fx = [];
     vehicle.touchdown = "";
     show("flight");
+    paintThrottle();
     document.getElementById("btn-ignite").style.display = "";
     toast("推油门，再按点火");
   }
@@ -306,12 +432,14 @@
     if (msg) {
       OW.audio.play("stage");
       toast(msg);
+      OW.draw.spawnFx("stage");
+      flashJuice("stage");
     }
   }
 
   function toggleCam() {
     mapMode = !mapMode;
-    document.getElementById("btn-cam").textContent = mapMode ? "跟机" : "轨道图";
+    setControlLabel("btn-cam", mapMode ? "跟机" : "轨道图");
   }
 
   function cycleWarp() {
@@ -373,6 +501,7 @@
       } else {
         knob.style.top = (y * 100) + "%";
         onMove(0, y);
+        paintThrottle();
       }
     }
     node.addEventListener("pointerdown", function (ev) {
@@ -446,6 +575,7 @@
     vehicle.throttle = OW.clamp(vehicle.throttle, 0, 1);
     var knob = document.getElementById("throttle-knob");
     knob.style.top = ((1 - vehicle.throttle) * 100) + "%";
+    paintThrottle();
   }
 
   function hintFor(tel) {
@@ -467,44 +597,75 @@
     var tel = OW.telemetry(vehicle, world);
     if (tel.altEarth > stats.maxAlt) stats.maxAlt = tel.altEarth;
     var vspeed = tel.vrad * 1000;
-    el.hudL.innerHTML =
-      "<strong>" + tel.bodyName + "</strong><br>" +
-      "高度 " + fmtAlt(tel.alt) + "<br>" +
-      "垂速 " + Math.round(vspeed) + " m/s<br>" +
-      "地速 " + fmtSpeed(tel.vt) + "<br>" +
-      "近 " + fmtOrbit(tel.pe, tel.speed) + " · 远 " + fmtOrbit(tel.ap, tel.speed);
+    setText(el.hudBody, tel.bodyName);
+    setText(el.hudAlt, fmtAlt(tel.alt));
+    setText(el.hudVs, Math.round(vspeed) + " m/s");
+    setText(el.hudGround, "地速 " + fmtSpeed(tel.vt));
+    setText(el.hudOrbit, "近 " + fmtOrbit(tel.pe, tel.speed) + " · 远 " + fmtOrbit(tel.ap, tel.speed));
+    var fuelPct = Math.round(tel.fuelPct * 100);
+    setText(el.hudFuelPct, fuelPct + "%");
+    if (el.hudFuelFill) el.hudFuelFill.style.width = Math.max(0, Math.min(100, fuelPct)) + "%";
+    if (el.hudFuelBar) {
+      el.hudFuelBar.classList.remove("good", "warn", "bad");
+      el.hudFuelBar.classList.add(fuelPct > 30 ? "good" : fuelPct > 10 ? "warn" : "bad");
+    }
+    setText(el.hudThrottlePct, Math.round(vehicle.throttle * 100) + "%");
+    paintThrottle();
+    setText(el.hudTwr, tel.twr.toFixed(2));
+    setText(el.hudQVal, tel.q.toFixed(0) + " / " + OW.TUNE.QMAX);
+    var qOver = tel.q > OW.TUNE.QMAX;
+    var qWarn = tel.q > OW.TUNE.QMAX * 0.7 && tel.altEarth < OW.TUNE.ATM_TOP;
+    el.hudQ.classList.toggle("over", qOver);
+    el.hudQ.classList.toggle("warn", !qOver && qWarn);
+    el.hudR.classList.toggle("q-pulse", qWarn || qOver);
+    setText(el.hudQNote, qOver ? "超阈" : qWarn ? "动压偏高" : "");
+    el.hudQNote.className = "hud-sub" + (qOver ? " bad" : qWarn ? " warn" : "");
+    var showWindow = tel.window.useful && mode === "moon" && !tel.inSoi;
+    el.hudWindow.hidden = !showWindow;
+    if (showWindow) {
+      el.hudWindow.classList.toggle("open", !!tel.window.open);
+      el.hudWindow.classList.toggle("shut", !tel.window.open);
+      setText(el.hudWindowLabel, tel.window.open ? "奔月窗口" : "窗口外 · 能到但费油");
+    }
     var stage = OW.nextStageInfo(vehicle);
-    el.hudR.innerHTML =
-      "燃料 " + Math.round(tel.fuelPct * 100) + "%<br>" +
-      "油门 " + Math.round(vehicle.throttle * 100) + "%<br>" +
-      "TWR " + tel.twr.toFixed(2) + "<br>" +
-      "动压 " + tel.q.toFixed(0) + " / " + OW.TUNE.QMAX + "<br>" +
-      (stage ? "下一级 " + stage.name : "没有可抛的级");
+    setText(el.stageName, stage ? stage.name : "没有可抛的级");
+    el.stageCap.classList.toggle("empty", !stage);
     var showHover = tel.alt < 30 && tel.vrad < 0.05 && vehicle.maxAlt > 2 && (tel.body === "moon" || tel.altEarth < 12);
-    if (showHover) {
-      el.hudR.innerHTML += "<br>悬停约 " + Math.round(tel.hoverThrottle * 100) + "%";
-      el.vs.classList.add("on");
-      var t = OW.clamp((vspeed + 40) / 80, 0, 1);
+    setText(el.hudHover, showHover ? "悬停约 " + Math.round(tel.hoverThrottle * 100) + "%" : "");
+    var nearEarth = !tel.inSoi && tel.altEarth < 30;
+    var nearMoon = tel.body === "moon" && tel.altMoon < 40;
+    var showVs = nearEarth || nearMoon;
+    el.vsDock.classList.toggle("on", showVs);
+    if (showVs) {
+      var span = 20;
+      var t = OW.clamp((vspeed + span) / (span * 2), 0, 1);
       el.vsMark.style.top = ((1 - t) * 100) + "%";
-    } else el.vs.classList.remove("on");
+      setText(el.vsRead, Math.round(vspeed) + " m/s");
+      setText(el.vsLabel, nearMoon ? "月面 · 绿区" : "近地 · 绿区");
+      var safe = (nearMoon ? OW.TUNE.VSAFE : OW.TUNE.VSAFE_EARTH) * 1000;
+      var topPct = function (ms) {
+        var u = OW.clamp((ms + span) / (span * 2), 0, 1);
+        return (1 - u) * 100;
+      };
+      var zoneTop = topPct(1);
+      var zoneBot = topPct(-safe);
+      el.vsZone.style.top = zoneTop + "%";
+      el.vsZone.style.height = Math.max(0, zoneBot - zoneTop) + "%";
+      var inZone = vspeed <= 1 && vspeed >= -safe;
+      el.vsMark.style.background = inZone ? "var(--good)" : (vspeed < -safe ? "var(--bad)" : "#fff");
+    }
     el.hint.textContent = hintFor(tel);
     var warp = vehicle.ignited ? OW.effectiveWarp(vehicle, world, warpReq) : 1;
     var label = warpReq >= OW.TUNE.COAST_WARP ? "巡航" : warpReq + "×";
-    document.getElementById("btn-warp").textContent = label;
+    setControlLabel("btn-warp", label);
     el.warp.textContent = warp > 1.05 ? (warp >= 100 ? "巡航 " + Math.round(warp) + "×" : warp + "×") : "";
-    if (tel.window.useful && mode === "moon" && !tel.inSoi) {
-      el.hudL.innerHTML += tel.window.open
-        ? '<br><span class="good">奔月窗口</span>'
-        : '<br><span class="warn">窗口外 · 能到但费油</span>';
-    }
-    if (tel.q > OW.TUNE.QMAX * 0.7 && tel.altEarth < OW.TUNE.ATM_TOP) {
-      el.hudR.innerHTML += '<br><span class="bad">动压偏高</span>';
-    }
     if (!vehicle.orbitAnnounced && vehicle.orbitDone) {
       vehicle.orbitAnnounced = true;
       save.orbitReached = true;
       persist();
-      banner("入轨成功");
+      banner("入轨成功", "orbit");
+      OW.draw.spawnFx("orbit");
+      flashJuice("orbit");
       OW.audio.play("orbit");
       toast("真空发动机已解锁");
     }
@@ -540,7 +701,10 @@
     last = now;
     if (bannerTimer > 0) {
       bannerTimer -= dt;
-      if (bannerTimer <= 0) el.banner.classList.remove("on");
+      if (bannerTimer <= 0) {
+        el.banner.classList.remove("on");
+        el.banner.classList.remove("ring");
+      }
     }
     if (toastTimer > 0) {
       toastTimer -= dt;
@@ -549,12 +713,7 @@
 
     if (screen === "menu" || screen === "howto") {
       OW.draw.sky(ctx);
-      // Quiet Earth + Moon so the menu isn't a black card on black.
-      var t = now / 1000;
-      var moon = OW.moonState(t * 40, 0.8);
-      OW.drawMap(ctx, { x: OW.TUNE.RE * 1.2, y: 0, vx: 0, vy: 0.1, angle: 0 }, { t: t * 40, moon0: 0.8 }, {
-        x: moon.x * 0.3, y: moon.y * 0.15, ppm: OW.draw.w / (OW.TUNE.EARTH_MOON_DIST * 2.6),
-      }, null);
+      OW.draw.menuBackdrop(ctx, now / 1000, reducedMotion());
     } else if (screen === "hangar") {
       OW.draw.hangar(ctx, craft, save, selectedId, selectedUid, hangarCam);
     } else if ((screen === "flight" || screen === "pause") && vehicle) {
@@ -570,6 +729,13 @@
           sim -= h;
           guard++;
         }
+        if (vehicle.exploded && !crashJuiced) {
+          crashJuiced = true;
+          OW.draw.spawnFx("crash");
+          shakeScreen();
+          flashJuice("crash");
+          OW.audio.play("alarm");
+        }
         if (vehicle.orbitDone) stats.maxAlt = Math.max(stats.maxAlt, OW.telemetry(vehicle, world).altEarth);
         if (now - predAt > 500) {
           prediction = OW.predict(vehicle, world);
@@ -584,7 +750,10 @@
         mapCam.x = vehicle.x;
         mapCam.y = vehicle.y;
       }
-      if (screen === "flight") OW.drawFlight(ctx, vehicle, world, canvas, mapMode ? "map" : "chase", mapCam, prediction);
+      if (screen === "flight") {
+        OW.draw.stepFx(dt);
+        OW.drawFlight(ctx, vehicle, world, canvas, mapMode ? "map" : "chase", mapCam, prediction);
+      }
     }
 
     requestAnimationFrame(frame);
